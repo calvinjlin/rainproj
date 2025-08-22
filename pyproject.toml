@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+#where = ["."]
+include = ["rainproj"]
+#namespaces = false
+
+[project]
+name = "rainproj"
+version = "0.0.1"
+authors = [
+  {name = "Calvin J Lin"}
+]

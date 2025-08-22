@@ -1,0 +1,25 @@
+name: netcdf
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - aiohttp
+  - ca-certificates
+  - certifi
+  - gcsfs
+  - h5netcdf
+  - ipykernel
+  - joblib
+  - jupyterlab
+  - matplotlib
+  - nbformat
+  - netcdf4
+  - openssl
+  - pandas
+  - plotly
+  - requests
+  - scipy
+  - xarray
+  - zarr
+  - pip:
+    - -e .
