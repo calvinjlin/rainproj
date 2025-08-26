@@ -62,3 +62,8 @@ class RainReader2:
         data = RainReader2.limit_lead_days(data,'7D')
         data = RainReader2.stack(data)
         return data
+    
+# https://stackoverflow.com/questions/24005221/ipython-notebook-early-exit-from-cell
+class StopExecution(Exception):
+    def _render_traceback_(self):
+        return []

@@ -2,10 +2,9 @@ name: netcdf
 channels:
   - conda-forge
 dependencies:
-  - python
   - aiohttp
-  - ca-certificates
-  - certifi
+  - bottleneck
+  - dask
   - gcsfs
   - h5netcdf
   - ipykernel
@@ -14,12 +13,13 @@ dependencies:
   - matplotlib
   - nbformat
   - netcdf4
-  - openssl
   - pandas
   - plotly
-  - requests
+  - python
+  - scikit-learn
   - scipy
   - xarray
+  - xskillscore
   - zarr
   - pip:
     - -e .
