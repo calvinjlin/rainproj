@@ -30,6 +30,27 @@ def calc_prob(frame,col):
     frame['>25mm'] = rain_mm>25
     return frame
 
+def xprocess_month(month,*,era_paths,hc_paths,xskill=False):
+    with Parallel(n_jobs=-1,prefer="threads",return_as='generator_unordered') as parallel:
+        era_df = pd.concat(parallel(delayed(pd.read_parquet)(file) for file in era_paths[month])).pipe(calc_prob,'total_precipitation')
+        hc_df = pd.concat(parallel(delayed(pd.read_parquet)(file) for file in hc_paths[month])).pipe(calc_prob,'precipitation tp06 [m]')
+
+    print("load done")
+    # Climatology
+    era_df['month'] = era_df['time'].dt.month
+    era_df['day'] = era_df['time'].dt.day
+    era_df['>2.5mm climate'] = era_df.groupby(['month','day'])['>2.5mm'].transform('mean')
+    era_df['>25mm climate'] = era_df.groupby(['month','day'])['>25mm'].transform('mean')
+    era_df = era_df.drop(['month','day'],axis=1)
+
+    print("start tasks")
+    lead_days = hc_df.index.get_level_values('lead_time').unique()
+    lead_days = lead_days[lead_days<=pd.Timedelta('7D')]
+
+    results = Parallel(n_jobs=3,return_as='generator_unordered')(delayed(process_lead_day)(era_df,hc_df,lead_day,xskill=xskill) for lead_day in lead_days)
+    return {month:{k:v for item in results for k,v in item.items()}}
+    # return era_df,hc_df,lead_days
+
 def process_month(month,*,era_paths,hc_paths,xskill=False):
     with Parallel(n_jobs=-1,prefer="threads",return_as='generator_unordered') as parallel:
         era_df = pd.concat(parallel(delayed(pd.read_parquet)(file) for file in era_paths[month])).pipe(calc_prob,'total_precipitation')

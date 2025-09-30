@@ -64,6 +64,10 @@ class ERA:
         for name,value in dataset.data_vars.items():
             print(name+' '+value.attrs['GRIB_name'])
 
+    @staticmethod
+    def xload_rain_dataset():
+        return ERA.load_ar_total_precipitation().sortby('latitude').rename({'latitude':'lat','longitude':'lon'}).pipe(RainReader2.slice_rain)
+
 def run_download():
     print(f"{datetime.now()}: Building graph...")
     ds_daily = ERA.load_ar_total_precipitation().sortby('latitude').rename({'latitude':'lat','longitude':'lon'}).pipe(RainReader2.slice_rain).chunk(time=TimeResampler("MS")).pipe(RainReader2.resample_daily)
@@ -109,5 +113,31 @@ def run_download2():
 
     print(f"{datetime.now()}: Done.")
 
+def run_download3():
+    import glob 
+    ds = ERA.xload_rain_dataset()
+    date_strings = sorted(set(str(date.astype('datetime64[D]')) for date in ds.time.values))
+
+    era_stage1_dir = Path(f'{SCRATCH}/hindcast/xarray/era_stage1/')
+    era_stage1_dir.mkdir(parents=True,exist_ok=True)
+
+    date_strings = [date_string for date_string in date_strings if not Path(era_stage1_dir/f'era_{date_string}.nc').is_file()]
+    def process_day(date,sub_ds):
+        sub_ds.pipe(RainReader2.resample_daily).to_netcdf(era_stage1_dir/f'era_{date}.nc')
+    tasks = joblib.Parallel(n_jobs=os.cpu_count(),verbose=100,timeout=99999)(joblib.delayed(process_day)(date,ds.sel(time=date)) for date in date_strings)
+
+
+    year_months = set([filename.split('_')[-1].rsplit('-',maxsplit=1)[0] for filename in os.listdir(era_stage1_dir)])
+    mon_year_files = {prefix:glob.glob(f'{SCRATCH}/hindcast/xarray/era_stage1/*{prefix}*.nc') for prefix in year_months}
+
+    stage2_dir = Path(f'{SCRATCH}/hindcast/xarray/era_stage2/')
+    stage2_dir.mkdir(parents=True,exist_ok=True)
+    def execute1(prefix_file_batch):
+        prefix,file_batch = prefix_file_batch
+        out_path = f'{SCRATCH}/hindcast/xarray/era_stage2/era_rain_{prefix}.nc'
+        xr.open_mfdataset(file_batch,combine='nested',concat_dim='time',engine="netcdf4").sortby('time').to_netcdf(out_path)
+    parallel = joblib.Parallel(n_jobs=os.cpu_count()-1)
+    silent2 = parallel(joblib.delayed(execute1)(prefix_file_batch) for prefix_file_batch in mon_year_files.items())
+
 if __name__=='__main__':
-    run_download2()
+    run_download3()

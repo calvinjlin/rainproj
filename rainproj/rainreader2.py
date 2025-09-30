@@ -54,14 +54,23 @@ class RainReader2:
         return data
     
     @staticmethod
-    def run_all(filepath):
+    def run_xarray_transforms(filepath):
         data = RainReader2.read_rain(filepath)
         data = RainReader2.slice_rain(data)
         data = RainReader2.resample_daily(data)
         data = RainReader2.redim(data)
         data = RainReader2.limit_lead_days(data,'7D')
+        return data
+
+    @staticmethod
+    def run_all(filepath):
+        data = RainReader2.run_xarray_transforms(filepath)
         data = RainReader2.stack(data)
         return data
+    
+    
+    
+
     
 # https://stackoverflow.com/questions/24005221/ipython-notebook-early-exit-from-cell
 class StopExecution(Exception):
